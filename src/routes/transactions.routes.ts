@@ -9,6 +9,7 @@ import TransactionsRepository from '../repositories/TransactionsRepository';
 import CreateTransactionService from '../services/CreateTransactionService';
 import DeleteTransactionService from '../services/DeleteTransactionService';
 import ImportTransactionsService from '../services/ImportTransactionsService';
+import Category from '../models/Category';
 
 const transactionsRouter = Router();
 
@@ -60,12 +61,18 @@ transactionsRouter.delete('/:id', async (request, response) => {
 
 });
 
-transactionsRouter.post('/import', upload.single('transactions'),  async (request, response) => {
-  const importTransactions = new ImportTransactionsService();
-
-  const transactions = await importTransactions.execute({ transactionsFilename: request.file.filename });
+transactionsRouter.post('/import', upload.single('file'),  async (request, response) => {
+  try {
+    const filename = request.file.filename;
   
-  return response.json(transactions);
+    const importTransactions = new ImportTransactionsService();
+
+    const transactions = await importTransactions.execute({ file: filename });
+  
+    return response.json(transactions);
+  } catch (error) {
+    return response.status(error.statusCode).json({ error: error.message });
+  }
 });
 
 export default transactionsRouter;
