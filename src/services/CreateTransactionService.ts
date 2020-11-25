@@ -7,37 +7,40 @@ import Transaction from '../models/Transaction';
 import TransactionsRepository from '../repositories/TransactionsRepository';
 
 interface RequestDTO {
-  title: string,
-  value: number,
-  type: 'outcome' | 'income',
-  category: string
-}
-
-interface TransactionDTO {
-  id: string,
-  title: string,
-  value: number,
-  type: string,
-  category: string
+  title: string;
+  value: number;
+  type: 'outcome' | 'income';
+  category: string;
 }
 
 class CreateTransactionService {
-  public async execute({ title, value, type, category }: RequestDTO): Promise<TransactionDTO> {
+  public async execute({
+    title,
+    value,
+    type,
+    category,
+  }: RequestDTO): Promise<Transaction> {
     const repository = getRepository(Transaction);
 
     if (type === 'outcome') {
-      const balance = await getCustomRepository(TransactionsRepository).getBalance();
+      const balance = await getCustomRepository(
+        TransactionsRepository,
+      ).getBalance();
 
       if (value > balance.total) {
-        throw new AppError('Your balance is not sufficient for this transation!');
+        throw new AppError(
+          'Your balance is not sufficient for this transation!',
+        );
       }
     }
 
-    const categoryExisting = await getRepository(Category).findOne({ where: { title: category } });
+    const categoryExisting = await getRepository(Category).findOne({
+      where: { title: category },
+    });
 
     if (!categoryExisting) {
       const categoryCreated = getRepository(Category).create({
-        title: category
+        title: category,
       });
 
       await getRepository(Category).save(categoryCreated);
@@ -46,41 +49,24 @@ class CreateTransactionService {
         title,
         value,
         type,
-        category: categoryCreated
+        category: categoryCreated,
       });
 
       await repository.save(transaction);
 
-      const transactionDTO: TransactionDTO = {
-        id: transaction.id,
-        title: transaction.title,
-        value: transaction.value,
-        category: transaction.category.title,
-        type: transaction.type
-      }
-
-      return transactionDTO;
-
+      return transaction;
     }
 
     const transaction = repository.create({
       title,
       value,
       type,
-      category: categoryExisting
+      category: categoryExisting,
     });
 
     await repository.save(transaction);
 
-    const transactionDTO: TransactionDTO = {
-      id: transaction.id,
-      title: transaction.title,
-      value: transaction.value,
-      category: transaction.category.title,
-      type: transaction.type
-    }
-
-    return transactionDTO;
+    return transaction;
   }
 }
 

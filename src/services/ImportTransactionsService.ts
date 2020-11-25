@@ -4,17 +4,15 @@ import path from 'path';
 import { getRepository } from 'typeorm';
 
 import uploadConfig from '../config/upload';
-import AppError from '../errors/AppError';
 import Category from '../models/Category';
 
 import Transaction from '../models/Transaction';
 
 interface RequestDTO {
-  file: string,
+  file: string;
 }
 
 class ImportTransactionsService {
-  
   async execute({ file }: RequestDTO): Promise<Transaction[]> {
     const csvFilePath = path.join(uploadConfig.directoryImages, file);
 
@@ -44,42 +42,47 @@ class ImportTransactionsService {
 
     const transactionsCreated: Transaction[] = [];
 
-    for (let i = 0; i < transactions.length; i++) {
-      const existentCategory = await getRepository(Category).findOne({ where: { title: transactions[i].category } });
+    // eslint-disable-next-line no-restricted-syntax
+    for (const transaction of transactions) {
+      // eslint-disable-next-line no-await-in-loop
+      const existentCategory = await getRepository(Category).findOne({
+        where: { title: transaction.category },
+      });
 
       if (existentCategory) {
-        const trans = getRepository(Transaction).create({
-          title: transactions[i].title,
-          type: transactions[i].type,
-          value: transactions[i].value,
-          category: existentCategory
+        const newTransaction = getRepository(Transaction).create({
+          title: transaction.title,
+          type: transaction.type,
+          value: transaction.value,
+          category: existentCategory,
         });
 
-        transactionsCreated.push(trans);
+        transactionsCreated.push(newTransaction);
+        // eslint-disable-next-line no-continue
         continue;
       }
-      
+
       const categoryCreated = getRepository(Category).create({
-        title: transactions[i].category
+        title: transaction.category,
       });
 
+      // eslint-disable-next-line no-await-in-loop
       await getRepository(Category).save(categoryCreated);
 
-      const trans = getRepository(Transaction).create({
-        title: transactions[i].title,
-        type: transactions[i].type,
-        value: transactions[i].value,
-        category: categoryCreated
+      const newTransaction = getRepository(Transaction).create({
+        title: transaction.title,
+        type: transaction.type,
+        value: transaction.value,
+        category: categoryCreated,
       });
 
-      transactionsCreated.push(trans);
+      transactionsCreated.push(newTransaction);
     }
 
     await getRepository(Transaction).save(transactionsCreated);
-    
+
     return transactionsCreated;
   }
-
 }
 
 export default ImportTransactionsService;
